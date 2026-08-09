@@ -272,34 +272,65 @@ def search_literature(
 
 
 def execute_search(params: dict[str, Any]) -> None:
-    connection_status = configure_scholarly()
+    try:
+        connection_status = configure_scholarly()
+
+    except Exception as exc:
+        st.session_state.search_output = None
+
+        st.error(
+            f"Proxy configuration failed: {exc}"
+        )
+
+        return
+
     progress_bar = st.progress(0)
     status = st.empty()
 
-    def update_progress(accepted: int, target: int, checked: int) -> None:
-        fraction = min(accepted / max(target, 1), 0.99)
+    def update_progress(
+        accepted: int,
+        target: int,
+        checked: int
+    ) -> None:
+
+        fraction = min(
+            accepted / max(target, 1),
+            0.99
+        )
+
         progress_bar.progress(fraction)
+
         status.info(
             f"Searching: {accepted}/{target} accepted papers, "
             f"{checked} candidates checked."
         )
 
     try:
-        output = search_literature(params, update_progress)
+        output = search_literature(
+            params,
+            update_progress
+        )
+
     except Exception as exc:
         progress_bar.empty()
         status.empty()
+
         st.session_state.search_output = None
-        st.error(f"Search failed: {exc}")
+
+        st.error(
+            f"Search failed: {exc}"
+        )
+
         return
 
     progress_bar.progress(1.0)
+
     status.success(
         f"Search completed using {connection_status} in "
         f"{output['elapsed_seconds']:.2f} seconds."
     )
-    st.session_state.search_output = output
 
+    st.session_state.search_output = output
 
 def clear_pending_confirmation() -> None:
     st.session_state.awaiting_spelling_confirmation = False
